@@ -1,0 +1,41 @@
+name: flutter_application_1
+description: "AR Conversational Assistant powered by Gemini AI"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.7
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  # Camera
+  camera: ^0.11.0+2
+  # Speech to Text
+  speech_to_text: ^7.0.0
+  # Text to Speech
+  flutter_tts: ^4.2.0
+  # HTTP for Gemini API
+  http: ^1.4.0
+  # Animations
+  animated_text_kit: ^4.2.3
+  # Permissions
+  permission_handler: ^11.4.0
+  # Shared Preferences (for API key storage)
+  shared_preferences: ^2.5.3
+  # Lottie animations
+  lottie: ^3.3.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/animations/
+    - assets/models/
+    - assets/images/
