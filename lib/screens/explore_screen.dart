@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/balinese_mask.dart';
 import '../theme/app_theme.dart';
+import '../widgets/model3d_viewer_widget.dart';
 import 'ar_screen.dart';
 
 class ExploreScreen extends StatefulWidget {
@@ -172,24 +173,36 @@ class _ExploreScreenState extends State<ExploreScreen> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Visual Avatar
-                Container(
+                // Visual Avatar — 3D jika model tersedia, emoji jika belum
+                SizedBox(
                   width: 64,
                   height: 64,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppTheme.backgroundColor,
-                    border: Border.all(
-                      color: AppTheme.primaryColor.withValues(alpha: 0.5),
-                      width: 1.5,
-                    ),
-                  ),
-                  child: Center(
-                    child: Text(
-                      mask.emoji,
-                      style: const TextStyle(fontSize: 30),
-                    ),
-                  ),
+                  child: mask.hasModel3D
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(32),
+                          child: Model3DViewerWidget(
+                            mask: mask,
+                            height: 64,
+                            autoRotate: true,
+                            showLabel: false,
+                          ),
+                        )
+                      : Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppTheme.backgroundColor,
+                            border: Border.all(
+                              color: AppTheme.primaryColor.withValues(alpha: 0.5),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              mask.emoji,
+                              style: const TextStyle(fontSize: 30),
+                            ),
+                          ),
+                        ),
                 ),
                 const SizedBox(width: 14),
                 // Information
@@ -343,19 +356,29 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     ),
                   ),
                   const SizedBox(height: 18),
-                  // Header Banner
+
+                  // ── 3D Model Viewer / Fallback ────────────────────────
+                  Model3DViewerWidget(
+                    mask: mask,
+                    height: 260,
+                    autoRotate: true,
+                    showLabel: true,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Header: nama & subtitle topeng
                   Row(
                     children: [
                       Container(
-                        width: 56,
-                        height: 56,
+                        width: 46,
+                        height: 46,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: AppTheme.backgroundColor,
                           border: Border.all(color: AppTheme.primaryColor, width: 1.5),
                         ),
                         child: Center(
-                          child: Text(mask.emoji, style: const TextStyle(fontSize: 28)),
+                          child: Text(mask.emoji, style: const TextStyle(fontSize: 24)),
                         ),
                       ),
                       const SizedBox(width: 14),

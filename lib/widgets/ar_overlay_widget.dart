@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../screens/ar_screen.dart';
 import '../theme/app_theme.dart';
 import '../models/balinese_mask.dart';
+import 'model3d_viewer_widget.dart';
 
 class AROverlayWidget extends StatelessWidget {
   final ARState arState;
@@ -33,15 +34,14 @@ class AROverlayWidget extends StatelessWidget {
         // Balinese Corner Brackets
         _buildBalineseCornerBrackets(size),
 
-        // Clean Yellow Scan Line
+        // Clean Yellow Scan Line (scanning only)
         if (arState == ARState.scanning) _buildScanLine(size),
 
-        // AR Target & 3D Balinese Mask Hologram
-        if (arState != ARState.scanning) _buildBalineseMaskTarget(size),
+        // === SCANNING: mandala kecil di tengah ===
+        if (arState == ARState.scanning) _buildScanningMandala(size),
 
-        // Balinese HUD Data Panels
-        if (arState == ARState.detected || arState == ARState.responding)
-          _buildHUDPanels(size),
+        // === DETECTED & seterusnya: model 3D besar + HUD ===
+        if (arState != ARState.scanning) _buildFullScreenModelDisplay(size),
       ],
     );
   }
@@ -82,96 +82,215 @@ class AROverlayWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildBalineseMaskTarget(Size size) {
+  /// Mandala kecil di tengah saat mode scanning
+  Widget _buildScanningMandala(Size size) {
     final centerX = size.width / 2;
-    final centerY = size.height * 0.40;
+    final centerY = size.height * 0.42;
 
     return AnimatedBuilder(
       animation: Listenable.merge([rotateAnimation, pulseAnimation]),
       builder: (context, child) {
         return Positioned(
-          left: centerX - 90,
-          top: centerY - 90,
-          child: Transform(
-            transform: Matrix4.identity()
-              ..setEntry(3, 2, 0.001) // perspective
-              ..rotateX(userRotationX)
-              ..rotateY(userRotationY),
-            alignment: Alignment.center,
-            child: SizedBox(
-              width: 180,
-              height: 180,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  // Outer Yellow Mandala Ring
-                  Transform.rotate(
-                    angle: rotateAnimation.value,
-                    child: CustomPaint(
-                      size: const Size(180, 180),
-                      painter: BalineseMandalaOverlayPainter(
-                        color: AppTheme.primaryColor.withValues(alpha: 0.6),
-                        strokeWidth: 1.5,
-                        petals: 8,
-                      ),
+          left: centerX - 60,
+          top: centerY - 60,
+          child: SizedBox(
+            width: 120,
+            height: 120,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Transform.rotate(
+                  angle: rotateAnimation.value,
+                  child: CustomPaint(
+                    size: const Size(120, 120),
+                    painter: BalineseMandalaOverlayPainter(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.5),
+                      strokeWidth: 1.5,
+                      petals: 8,
                     ),
                   ),
-                  // Inner Yellow Ring
-                  Transform.rotate(
-                    angle: -rotateAnimation.value * 0.6,
-                    child: CustomPaint(
-                      size: const Size(130, 130),
-                      painter: BalineseMandalaOverlayPainter(
-                        color: AppTheme.primaryColor.withValues(alpha: 0.35),
-                        strokeWidth: 1.2,
-                        petals: 6,
-                      ),
+                ),
+                Transform.rotate(
+                  angle: -rotateAnimation.value * 0.7,
+                  child: CustomPaint(
+                    size: const Size(80, 80),
+                    painter: BalineseMandalaOverlayPainter(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                      strokeWidth: 1.2,
+                      petals: 6,
                     ),
                   ),
-                  // Center 3D Balinese Mask Hologram Container
-                  Transform.scale(
-                    scale: pulseAnimation.value,
-                    child: Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppTheme.surfaceColor,
-                        border: Border.all(
-                          color: AppTheme.primaryColor,
-                          width: 2,
-                        ),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            '🎭',
-                            style: TextStyle(fontSize: 32),
-                          ),
-                          Text(
-                            mask != null
-                                ? mask!.name.replaceAll('Topeng ', '')
-                                : '3D TOPENG',
-                            style: const TextStyle(
-                              color: AppTheme.primaryColor,
-                              fontSize: 8.5,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.5,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+                Text(
+                  mask?.emoji ?? '🎭',
+                  style: const TextStyle(fontSize: 36),
+                ),
+              ],
             ),
           ),
         );
       },
+    );
+  }
+
+  /// Layout utama saat topeng terdeteksi — model 3D besar + HUD
+  Widget _buildFullScreenModelDisplay(Size size) {
+    // Tinggi area model: dari bawah topbar (~100px) sampai atas bottom controls (~180px)
+    final topBarHeight = size.height * 0.14;
+    final bottomControlHeight = size.height * 0.26;
+    final modelAreaHeight = size.height - topBarHeight - bottomControlHeight;
+    final modelAreaWidth = size.width;
+
+    return AnimatedBuilder(
+      animation: pulseAnimation,
+      builder: (context, child) {
+        return Stack(
+          children: [
+            // ── Model 3D besar di tengah layar ──────────────────────────
+            Positioned(
+              top: topBarHeight,
+              left: 0,
+              right: 0,
+              height: modelAreaHeight,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  children: [
+                    // Mandala ring tipis di atas model sebagai dekorasi AR
+                    SizedBox(
+                      height: 24,
+                      child: AnimatedBuilder(
+                        animation: rotateAnimation,
+                        builder: (context, _) => CustomPaint(
+                          size: Size(modelAreaWidth, 24),
+                          painter: HorizontalLinePainter(
+                            color: AppTheme.primaryColor.withValues(alpha: 0.4 * pulseAnimation.value),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // Model 3D / emoji — mengisi sisa area
+                    Expanded(
+                      child: mask != null && mask!.hasModel3D
+                          ? _build3DModelViewer(mask!)
+                          : Transform(
+                              transform: Matrix4.identity()
+                                ..setEntry(3, 2, 0.001)
+                                ..rotateX(userRotationX)
+                                ..rotateY(userRotationY),
+                              alignment: Alignment.center,
+                              child: _buildLargeEmojiDisplay(mask),
+                            ),
+                    ),
+
+                    // Garis bawah + nama topeng
+                    _buildModelLabel(),
+                    const SizedBox(height: 8),
+                  ],
+                ),
+              ),
+            ),
+
+            // ── HUD panel kiri & kanan ──────────────────────────────────
+            if (arState == ARState.detected || arState == ARState.responding)
+              _buildHUDPanels(size),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _build3DModelViewer(BalineseMask m) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: Model3DViewerWidget(
+        mask: m,
+        height: double.infinity,
+        autoRotate: true,
+        showLabel: false,
+      ),
+    );
+  }
+
+  Widget _buildLargeEmojiDisplay(BalineseMask? m) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: RadialGradient(
+          colors: [
+            AppTheme.primaryColor.withValues(alpha: 0.08),
+            Colors.transparent,
+          ],
+        ),
+        border: Border.all(
+          color: AppTheme.primaryColor.withValues(alpha: 0.2),
+          width: 1,
+        ),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              m?.emoji ?? '🎭',
+              style: const TextStyle(fontSize: 100),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              m?.name ?? 'Topeng Bali',
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Model 3D belum tersedia',
+              style: TextStyle(color: Colors.white38, fontSize: 11),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModelLabel() {
+    return AnimatedBuilder(
+      animation: pulseAnimation,
+      builder: (context, _) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceColor,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: AppTheme.primaryColor.withValues(alpha: 0.3 * pulseAnimation.value),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              mask?.hasModel3D == true ? Icons.view_in_ar : Icons.emoji_emotions_outlined,
+              color: AppTheme.primaryColor,
+              size: 13,
+            ),
+            const SizedBox(width: 7),
+            Text(
+              mask?.hasModel3D == true
+                  ? '${mask!.name} · Putar & Zoom'
+                  : (mask?.name ?? 'Topeng Bali'),
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 11,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -384,6 +503,8 @@ class BalineseCornerPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
+
+
 class BalineseMandalaOverlayPainter extends CustomPainter {
   final Color color;
   final double strokeWidth;
@@ -419,3 +540,28 @@ class BalineseMandalaOverlayPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
+
+class HorizontalLinePainter extends CustomPainter {
+  final Color color;
+
+  HorizontalLinePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.0
+      ..style = PaintingStyle.stroke;
+
+    final centerY = size.height / 2;
+    canvas.drawLine(Offset(20, centerY), Offset(size.width - 20, centerY), paint);
+    canvas.drawCircle(Offset(size.width / 2, centerY), 3, paint..style = PaintingStyle.fill);
+  }
+
+  @override
+  bool shouldRepaint(covariant HorizontalLinePainter oldDelegate) =>
+      oldDelegate.color != color;
+}
+
+
+

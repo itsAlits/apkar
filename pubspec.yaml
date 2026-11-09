@@ -27,6 +27,7 @@ dependencies:
   shared_preferences: ^2.5.3
   # Lottie animations
   lottie: ^3.3.1
+  model_viewer_plus: ^1.10.0
 
 dev_dependencies:
   flutter_test:
@@ -38,4 +39,5 @@ flutter:
   assets:
     - assets/animations/
     - assets/models/
+    - assets/models/TopengTua3d.glb
     - assets/images/

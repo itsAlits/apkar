@@ -253,41 +253,46 @@ class _ARScreenState extends State<ARScreen> with TickerProviderStateMixin {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Live camera or clean dark surface
-          if (_isCameraReady && _cameraController != null)
-            SizedBox.expand(
-              child: FittedBox(
-                fit: BoxFit.cover,
-                child: SizedBox(
-                  width: _cameraController!.value.previewSize?.height ?? 1,
-                  height: _cameraController!.value.previewSize?.width ?? 1,
-                  child: CameraPreview(_cameraController!),
-                ),
-              ),
-            )
+          // Kamera aktif HANYA saat scanning, setelah detected → matikan kamera
+          // untuk hemat baterai & performa
+          if (_arState == ARState.scanning)
+            _isCameraReady && _cameraController != null
+                ? SizedBox.expand(
+                    child: FittedBox(
+                      fit: BoxFit.cover,
+                      child: SizedBox(
+                        width: _cameraController!.value.previewSize?.height ?? 1,
+                        height: _cameraController!.value.previewSize?.width ?? 1,
+                        child: CameraPreview(_cameraController!),
+                      ),
+                    ),
+                  )
+                : _buildBalineseDummyCameraView()
           else
-            _buildBalineseDummyCameraView(),
+            // Background Balinese gelap saat model sudah terdeteksi
+            _buildDetectedBackground(),
 
-          // Interactive touch gesture for rotating the 3D Balinese Mask
-          GestureDetector(
-            onPanUpdate: (details) {
-              setState(() {
-                _modelRotationY += details.delta.dx * 0.01;
-                _modelRotationX -= details.delta.dy * 0.01;
-              });
-            },
-            onDoubleTap: () {
-              setState(() {
-                _modelRotationY = 0.0;
-                _modelRotationX = 0.0;
-              });
-            },
-            child: Container(
-              color: Colors.transparent,
-              width: double.infinity,
-              height: double.infinity,
+          // Interactive touch gesture for rotating the 3D Balinese Mask (only for fallback 2D)
+          if (_arState == ARState.scanning || !_currentMask.hasModel3D)
+            GestureDetector(
+              onPanUpdate: (details) {
+                setState(() {
+                  _modelRotationY += details.delta.dx * 0.01;
+                  _modelRotationX -= details.delta.dy * 0.01;
+                });
+              },
+              onDoubleTap: () {
+                setState(() {
+                  _modelRotationY = 0.0;
+                  _modelRotationX = 0.0;
+                });
+              },
+              child: Container(
+                color: Colors.transparent,
+                width: double.infinity,
+                height: double.infinity,
+              ),
             ),
-          ),
 
           // AR Overlay (HUD + Balinese Mandala Reticle)
           AROverlayWidget(
@@ -327,6 +332,25 @@ class _ARScreenState extends State<ARScreen> with TickerProviderStateMixin {
       width: double.infinity,
       height: double.infinity,
       color: const Color(0xFF0D0F14),
+      child: CustomPaint(painter: BalineseARGridPainter()),
+    );
+  }
+
+  /// Background gelap bergradient saat topeng sudah terdeteksi (kamera OFF)
+  Widget _buildDetectedBackground() {
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: RadialGradient(
+          center: Alignment(0, -0.15),
+          radius: 1.1,
+          colors: [
+            Color(0xFF1A1500), // tengah — hangat gelap keemasan
+            Color(0xFF0D0F14), // pinggir — gelap total
+          ],
+        ),
+      ),
       child: CustomPaint(painter: BalineseARGridPainter()),
     );
   }

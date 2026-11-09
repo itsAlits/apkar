@@ -14,6 +14,17 @@ class BalineseMask {
   final String emoji;
   final int colorValue;
 
+  /// Apakah file GLB model 3D sudah tersedia di assets/models/
+  bool get hasModel3D => _availableModels.contains(modelFileName);
+
+  /// Daftar file model yang sudah ada di folder assets/models/
+  static const Set<String> _availableModels = {
+    'TopengTua3d.glb',
+  };
+
+  /// Path asset lengkap untuk ModelViewer
+  String get modelAssetPath => 'assets/models/$modelFileName';
+
   const BalineseMask({
     required this.id,
     required this.name,
@@ -51,7 +62,7 @@ class BalineseMask {
         '⚔️ Siapakah musuh abadi Barong Ket?',
         '🪵 Mengapa Barong wajib dibuat dari Kayu Pule?',
       ],
-      modelFileName: 'barong.glb',
+      modelFileName: 'TopengTua3d.glb',
       emoji: '🦁',
       colorValue: 0xFFFFB300,
     ),
